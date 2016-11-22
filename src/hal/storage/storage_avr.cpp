@@ -24,14 +24,16 @@
 
 int hal_storage_read(uint16_t addr, uint8_t *value, uint16_t len)
 {
-	int i;
+	const uint8_t *paddr;
+	uint16_t i;
 
 	/* E2END represents the last EEPROM address */
 	for (i = 0; i < len; i++) {
 		if((addr + i) > (E2END + 1))
 			break;
 
-		value[i] = eeprom_read_byte(addr + i);
+		*paddr = addr + i;
+		value[i] = eeprom_read_byte(paddr);
 	}
 
 	return i;
@@ -39,14 +41,16 @@ int hal_storage_read(uint16_t addr, uint8_t *value, uint16_t len)
 
 int hal_storage_write(uint16_t addr, const uint8_t *value, uint16_t len)
 {
-	int i;
+	const uint8_t *paddr;
+	uint16_t i;
 
 	/* E2END represents the last EEPROM address */
 	for (i = 0; i < len; i++) {
 		if ((addr + i) > (E2END + 1))
 			break;
 
-		eeprom_write_byte(addr + i, value[i]);
+		*paddr = addr + i;
+		eeprom_write_byte(paddr, value[i]);
 	}
 
 	return i;
