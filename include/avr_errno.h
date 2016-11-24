@@ -18,11 +18,12 @@ extern "C" {
 #define EFAULT			14	/* Bad address */
 #define EBADMSG			74	/* Not a data message */
 #define EILSEQ			84	/* Illegal byte sequence */
-#define ENOSYS			38	/*  Function not implemented */
+#define ENOSYS			38	/* Function not implemented */
 #define EPERM			01	/* Operation not permitted */
 #define EUSERS			87	/* Too many users */
 #define EBUSY			16	/* Device or resource busy */
-#define ETIMEDOUT		110 /* Connection timed out */
+#define ETIMEDOUT		110	/* Connection timed out */
+#define EBADFD			77	/* File descriptor in bad state */
 
 #ifdef __cplusplus
 }

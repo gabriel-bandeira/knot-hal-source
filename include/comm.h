@@ -39,7 +39,7 @@ int hal_comm_close(int sockfd);
 /* Non-blocking read operation. Returns -EGAIN if there isn't data available */
 ssize_t hal_comm_read(int sockfd, void *buffer, size_t count);
 
-/* Blocking write operation. Returns -EBADF if not connected */
+/* Blocking write operation. Returns -EBADFD if not connected */
 ssize_t hal_comm_write(int sockfd, const void *buffer, size_t count);
 
 int hal_comm_listen(int sockfd);
