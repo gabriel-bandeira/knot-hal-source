@@ -22,6 +22,11 @@
 
 #include "include/comm.h"
 
+int hal_comm_init(const char *pathname, const struct nrf24_mac *mac)
+{
+	return -ENOSYS;
+}
+
 int hal_comm_socket(int domain, int protocol)
 {
 	return -ENOSYS;
