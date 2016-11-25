@@ -29,6 +29,7 @@
 /* Application packet size maximum, same as knotd */
 #define PACKET_SIZE_MAX			512
 #define KNOTD_UNIX_ADDRESS		"knot"
+#define THING_TO_PHYEMUD_UNIX_SOCKET	":thing:phyemud"
 
 static guint unix_watch_id = 0;
 static GSList *session_list = NULL;
@@ -39,10 +40,7 @@ struct session {
 	unsigned int knotd_id;	/* KNoT event source */
 	GIOChannel *knotd_io;	/* Knotd GIOChannel reference */
 	GIOChannel *thing_io;	/* Knotd GIOChannel reference */
-	struct phy_driver *ops;
 };
-
-extern struct phy_driver phy_unix;
 
 static int connect_unix(void)
 {
@@ -81,7 +79,6 @@ static gboolean knotd_io_watch(GIOChannel *io, GIOCondition cond,
 {
 	struct session *session = user_data;
 	char buffer[PACKET_SIZE_MAX];
-	struct phy_driver *ops = session->ops;
 	int thing_sock, knotd_sock;
 	ssize_t readbytes_knotd;
 
@@ -91,7 +88,7 @@ static gboolean knotd_io_watch(GIOChannel *io, GIOCondition cond,
 	knotd_sock = g_io_channel_unix_get_fd(io);
 	thing_sock = g_io_channel_unix_get_fd(session->thing_io);
 
-	printf("Incomming data from knotd (%d)\n\r", knotd_sock);
+	printf("Incoming data from knotd (%d)\n\r", knotd_sock);
 
 	readbytes_knotd = read(knotd_sock, buffer, sizeof(buffer));
 	if (readbytes_knotd < 0) {
@@ -100,7 +97,7 @@ static gboolean knotd_io_watch(GIOChannel *io, GIOCondition cond,
 	}
 	printf("RX_KNOTD: '%ld'\n\r", readbytes_knotd);
 
-	if (ops->send(thing_sock, buffer, readbytes_knotd) < 0) {
+	if (hal_comm_write(thing_sock, buffer, readbytes_knotd) < 0) {
 		printf("send_thing() error\n\r");
 		return FALSE;
 	}
@@ -131,7 +128,6 @@ static gboolean generic_io_watch(GIOChannel *io, GIOCondition cond,
 							gpointer user_data)
 {
 	struct session *session = user_data;
-	struct phy_driver *ops = session->ops;
 	char buffer[PACKET_SIZE_MAX];
 	ssize_t nbytes;
 	int sock, knotdfd, offset, msg_size, err, remaining;
@@ -145,7 +141,7 @@ static gboolean generic_io_watch(GIOChannel *io, GIOCondition cond,
 
 	printf("Generic IO Watch, reading from (%d)\n\r", sock);
 
-	nbytes = ops->recv(sock, buffer, sizeof(buffer));
+	nbytes = hal_comm_read(sock, buffer, sizeof(buffer));
 	if (nbytes < 0) {
 		printf("read() error\n");
 		return FALSE;
@@ -168,7 +164,8 @@ static gboolean generic_io_watch(GIOChannel *io, GIOCondition cond,
 	while (offset < msg_size) {
 		remaining = sizeof(buffer) - offset;
 		if (remaining > 0)
-			nbytes = ops->recv(sock, buffer + offset, remaining);
+			nbytes = hal_comm_read(sock, buffer + offset,
+								remaining);
 		else
 			goto done;
 		err = errno;
@@ -201,21 +198,20 @@ static gboolean generic_accept_cb(GIOChannel *io, GIOCondition cond,
 	GIOChannel *thing_io, *knotd_io;
 	int cli_sock, srv_sock, knotdfd;
 	struct session *session;
-	struct phy_driver *ops = user_data;
 
 	if (cond & (G_IO_NVAL | G_IO_HUP | G_IO_ERR))
 		return FALSE;
 
 	/* Accepting thing connection */
 	srv_sock = g_io_channel_unix_get_fd(io);
-	cli_sock = ops->accept(srv_sock);
+	cli_sock = accept(srv_sock, NULL, NULL);
 
 	if (cli_sock < 0)
 		return TRUE;
 
 	knotdfd = connect_unix();
 	if (knotdfd < 0) {
-		ops->close(cli_sock);
+		close(cli_sock);
 		return TRUE;
 	}
 	printf("Connected to (%d)\n\r", knotdfd);
@@ -233,7 +229,6 @@ static gboolean generic_accept_cb(GIOChannel *io, GIOCondition cond,
 	session = g_new0(struct session, 1);
 	session->knotd_io = knotd_io;
 	session->thing_io = thing_io;
-	session->ops = ops;
 
 	/* Watch for unix socket disconnection */
 	session->thing_id = g_io_add_watch_full(thing_io, G_PRIORITY_DEFAULT,
@@ -256,17 +251,26 @@ static int unix_start(void)
 {
 	GIOCondition cond = G_IO_IN | G_IO_ERR | G_IO_HUP | G_IO_NVAL;
 	GIOChannel *io;
-	int sock;
+	struct sockaddr_un addr;
+	int err, sock;
 
-	phy_unix.probe(NULL, 0);
-	sock = phy_unix.open(NULL);
+	sock = socket(AF_UNIX, SOCK_SEQPACKET | SOCK_CLOEXEC, 0);
 	if (sock < 0)
-		return sock;
+		return -errno;
 
-	sock = phy_unix.listen(sock, 0);
-	if (sock < 0) {
-		phy_unix.close(sock);
-		return -1;
+	/* Represents unix socket from thing to nrfd */
+	memset(&addr, 0, sizeof(addr));
+	addr.sun_family = AF_UNIX;
+	strncpy(addr.sun_path + 1, THING_TO_PHYEMUD_UNIX_SOCKET,
+					strlen(THING_TO_PHYEMUD_UNIX_SOCKET));
+	if (bind(sock, (struct sockaddr *) &addr, sizeof(addr)) == -1) {
+		err = -errno;
+		return err;
+	}
+
+	if (listen(sock, 1) == -1) {
+		err = -errno;
+		return err;
 	}
 
 	printf("Unix server started\n\r");
@@ -274,7 +278,7 @@ static int unix_start(void)
 	g_io_channel_set_flags(io, G_IO_FLAG_NONBLOCK, NULL);
 	g_io_channel_set_close_on_unref(io, TRUE);
 
-	unix_watch_id = g_io_add_watch(io, cond, generic_accept_cb, &phy_unix);
+	unix_watch_id = g_io_add_watch(io, cond, generic_accept_cb, NULL);
 
 	/* Keep only one ref: server watch */
 	g_io_channel_unref(io);
@@ -298,7 +302,7 @@ static int serial_start(const char *pathname)
 
 	knotdfd = connect_unix();
 	if (knotdfd < 0) {
-		phy_unix.close(commfd);
+		close(commfd);
 		return FALSE;
 	}
 
@@ -339,8 +343,6 @@ static void unix_stop(void)
 {
 	if (unix_watch_id)
 		g_source_remove(unix_watch_id);
-
-	phy_unix.remove();
 }
 
 static void serial_stop(void)
