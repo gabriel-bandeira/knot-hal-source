@@ -21,7 +21,7 @@
 #include <fcntl.h>
 
 /* FIXME: Remove this header */
-> #include "include/nrf24.h"
+#include "include/nrf24.h"
 
 #include "include/comm.h"
 
@@ -66,13 +66,13 @@ int hal_comm_close(int sockfd)
 /* Non-blocking read operation. Returns -EGAIN if there isn't data available */
 ssize_t hal_comm_read(int sockfd, void *buffer, size_t count)
 {
-	return read(sockfd, buffer, len);
+	return read(sockfd, buffer, count);
 }
 
 /* Blocking write operation. Returns -EBADF if not connected */
 ssize_t hal_comm_write(int sockfd, const void *buffer, size_t count)
 {
-	return write(sockfd, buffer, len);
+	return write(sockfd, buffer, count);
 }
 
 int hal_comm_listen(int sockfd)
