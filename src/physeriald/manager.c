@@ -31,8 +31,6 @@
 #define KNOTD_UNIX_ADDRESS		"knot"
 #define THING_TO_PHYEMUD_UNIX_SOCKET	":thing:phyemud"
 
-static guint unix_watch_id = 0;
-static GSList *session_list = NULL;
 static int commfd;
 
 struct session {
@@ -51,7 +49,7 @@ static int connect_unix(void)
 	if (sock < 0)
 		return -errno;
 
-	/* Represents unix socket from nrfd to knotd */
+	/* Represents unix socket from seriald to knotd */
 	memset(&addr, 0, sizeof(addr));
 	addr.sun_family = AF_UNIX;
 	strncpy(addr.sun_path + 1, KNOTD_UNIX_ADDRESS,
@@ -70,8 +68,6 @@ static void knotd_io_destroy(gpointer user_data)
 	printf("knotd_io_destroy\n\r");
 	session->knotd_id = 0;
 	session->knotd_io = NULL;
-
-
 }
 
 static gboolean knotd_io_watch(GIOChannel *io, GIOCondition cond,
@@ -108,20 +104,12 @@ static gboolean knotd_io_watch(GIOChannel *io, GIOCondition cond,
 static void generic_io_destroy(gpointer user_data)
 {
 	struct session *session = user_data;
-	GIOChannel *thing_io;
-
 	printf("generic_io_destroy\n\r");
-	thing_io = session->thing_io;
 
 	if (session->thing_id > 0) {
-		g_source_remove(session->thing_id);
-
-		g_io_channel_shutdown(thing_io, FALSE, NULL);
-		g_io_channel_unref(thing_io);
+		g_io_channel_shutdown(session->thing_io, FALSE, NULL);
+		g_io_channel_unref(session->thing_io);
 	}
-
-	session_list = g_slist_remove(session_list, session);
-	g_free(session);
 }
 
 static gboolean generic_io_watch(GIOChannel *io, GIOCondition cond,
@@ -192,104 +180,10 @@ done:
 	return TRUE;
 }
 
-static gboolean generic_accept_cb(GIOChannel *io, GIOCondition cond,
-							gpointer user_data)
-{
-	GIOChannel *thing_io, *knotd_io;
-	int cli_sock, srv_sock, knotdfd;
-	struct session *session;
-
-	if (cond & (G_IO_NVAL | G_IO_HUP | G_IO_ERR))
-		return FALSE;
-
-	/* Accepting thing connection */
-	srv_sock = g_io_channel_unix_get_fd(io);
-	cli_sock = accept(srv_sock, NULL, NULL);
-
-	if (cli_sock < 0)
-		return TRUE;
-
-	knotdfd = connect_unix();
-	if (knotdfd < 0) {
-		close(cli_sock);
-		return TRUE;
-	}
-	printf("Connected to (%d)\n\r", knotdfd);
-
-	/* Tracking unix socket connection & data */
-	knotd_io = g_io_channel_unix_new(knotdfd);
-	g_io_channel_set_flags(knotd_io, G_IO_FLAG_NONBLOCK, NULL);
-	g_io_channel_set_close_on_unref(knotd_io, TRUE);
-
-	/* Tracking thing connection & data */
-	thing_io = g_io_channel_unix_new(cli_sock);
-	g_io_channel_set_flags(thing_io, G_IO_FLAG_NONBLOCK, NULL);
-	g_io_channel_set_close_on_unref(thing_io, TRUE);
-
-	session = g_new0(struct session, 1);
-	session->knotd_io = knotd_io;
-	session->thing_io = thing_io;
-
-	/* Watch for unix socket disconnection */
-	session->thing_id = g_io_add_watch_full(thing_io, G_PRIORITY_DEFAULT,
-				G_IO_HUP | G_IO_NVAL | G_IO_ERR | G_IO_IN,
-				generic_io_watch, session, generic_io_destroy);
-	g_io_channel_unref(thing_io);
-
-	/* Watch for unix socket disconnection */
-	session->knotd_id = g_io_add_watch_full(knotd_io, G_PRIORITY_DEFAULT,
-				G_IO_HUP | G_IO_NVAL | G_IO_ERR | G_IO_IN,
-				knotd_io_watch, session, knotd_io_destroy);
-	g_io_channel_unref(knotd_io);
-
-	session_list = g_slist_prepend(session_list, session);
-
-	return TRUE;
-}
-
-static int unix_start(void)
-{
-	GIOCondition cond = G_IO_IN | G_IO_ERR | G_IO_HUP | G_IO_NVAL;
-	GIOChannel *io;
-	struct sockaddr_un addr;
-	int err, sock;
-
-	sock = socket(AF_UNIX, SOCK_SEQPACKET | SOCK_CLOEXEC, 0);
-	if (sock < 0)
-		return -errno;
-
-	/* Represents unix socket from thing to nrfd */
-	memset(&addr, 0, sizeof(addr));
-	addr.sun_family = AF_UNIX;
-	strncpy(addr.sun_path + 1, THING_TO_PHYEMUD_UNIX_SOCKET,
-					strlen(THING_TO_PHYEMUD_UNIX_SOCKET));
-	if (bind(sock, (struct sockaddr *) &addr, sizeof(addr)) == -1) {
-		err = -errno;
-		return err;
-	}
-
-	if (listen(sock, 1) == -1) {
-		err = -errno;
-		return err;
-	}
-
-	printf("Unix server started\n\r");
-	io = g_io_channel_unix_new(sock);
-	g_io_channel_set_flags(io, G_IO_FLAG_NONBLOCK, NULL);
-	g_io_channel_set_close_on_unref(io, TRUE);
-
-	unix_watch_id = g_io_add_watch(io, cond, generic_accept_cb, NULL);
-
-	/* Keep only one ref: server watch */
-	g_io_channel_unref(io);
-
-	return 0;
-}
-
 static int serial_start(const char *pathname)
 {
-	struct session *session;
 	GIOCondition cond = G_IO_IN | G_IO_ERR | G_IO_HUP | G_IO_NVAL;
+	struct session *session;
 	GIOChannel *io;
 	int knotdfd;
 
@@ -301,8 +195,8 @@ static int serial_start(const char *pathname)
 	}
 
 	knotdfd = connect_unix();
+	printf("knotdfd = (%d)\n\r", knotdfd);
 	if (knotdfd < 0) {
-		close(commfd);
 		return FALSE;
 	}
 
@@ -334,15 +228,7 @@ static int serial_start(const char *pathname)
 							generic_io_destroy);
 	g_io_channel_unref(io);
 
-	session_list = g_slist_prepend(session_list, session);
-
 	return 0;
-}
-
-static void unix_stop(void)
-{
-	if (unix_watch_id)
-		g_source_remove(unix_watch_id);
 }
 
 static void serial_stop(void)
@@ -350,41 +236,17 @@ static void serial_stop(void)
 	hal_comm_close(commfd);
 }
 
-int manager_start(const char *serial, gboolean unix_sock)
+int manager_start(const char *serial)
 {
-	int err;
-
-	if (unix_sock)
-		err = unix_start();
-
-	if (err < 0)
-		return err;
-
 	if (serial)
-		err = serial_start(serial);
-
-	if (err < 0)
-		return err;
+		return serial_start(serial);
 
 	return 0;
 }
 
 void manager_stop(void)
 {
-	GSList *list;
-	struct session *session;
-
-	unix_stop();
 	serial_stop();
 
 	printf("Manager stop\n");
-
-	for (list = session_list; list; list = g_slist_next(list)) {
-		session = list->data;
-
-		if (session->knotd_id > 0)
-			g_source_remove(session->knotd_id);
-	}
-	printf("freeing list\n");
-	g_slist_free(session_list);
 }
