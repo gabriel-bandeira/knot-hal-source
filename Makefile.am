@@ -4,36 +4,39 @@ CP=cp
 ZIP=zip
 
 AM_MAKEFLAGS = --no-print-directory
-SUBDIRS = src/spi src/nrf24l01 src/hal/storage src/hal/time src/hal/log \
+#SUBDIRS = src/spi src/nrf24l01 src/hal/storage src/hal/time src/hal/log \
+SUBDIRS = src/spi src/hal/storage src/hal/time src/hal/log \
 					src/hal/comm src/drivers
 
 AM_CFLAGS = $(WARNING_CFLAGS) $(BUILD_CFLAGS)
 AM_LDFLAGS = $(BUILD_LDFLAGS)
 
-bin_PROGRAMS = proxy/spiproxyd src/nrfd/nrfd src/physeriald/physeriald
+#bin_PROGRAMS = proxy/spiproxyd src/nrfd/nrfd src/physeriald/physeriald
+bin_PROGRAMS = proxy/spiproxyd src/physeriald/physeriald
 
 proxy_spiproxyd_SOURCES = proxy/main.c
-proxy_spiproxyd_LDADD = libs/libspi.a libs/libnrf24l01.a @GLIB_LIBS@
+#proxy_spiproxyd_LDADD = libs/libspi.a libs/libnrf24l01.a @GLIB_LIBS@
+proxy_spiproxyd_LDADD = libs/libspi.a @GLIB_LIBS@
 proxy_spiproxyd_LDFLAGS = $(AM_LDFLAGS)
 proxy_spiproxyd_CFLAGS = $(AM_CFLAGS) @GLIB_CFLAGS@
 
-src_nrfd_nrfd_SOURCES = src/nrfd/main.c \
-				src/nrfd/manager.h src/nrfd/manager.c
-src_nrfd_nrfd_LDADD = libs/libhallog.a \
-				libs/libhalcommnrf24.a \
-				libs/libphy_driver.a \
-				libs/libhaltime.a \
-				libs/libhalstorage.a \
-				libs/libnrf24l01.a \
-				libs/libspi.a \
-				@GLIB_LIBS@ @JSON_LIBS@
-src_nrfd_nrfd_LDFLAGS = $(AM_LDFLAGS)
-src_nrfd_nrfd_CFLAGS = $(AM_CFLAGS) @GLIB_CFLAGS@ \
-				-I$(top_srcdir)/src \
-				-I$(top_srcdir)/src/nrf24l01 \
-				-I$(top_srcdir)/src/drivers \
-				-I$(top_srcdir)/src/hal/comm \
-				-I$(top_srcdir)/src/nrf24l01 @JSON_CFLAGS@
+#src_nrfd_nrfd_SOURCES = src/nrfd/main.c \
+#				src/nrfd/manager.h src/nrfd/manager.c
+#src_nrfd_nrfd_LDADD = libs/libhallog.a \
+#				libs/libhalcommnrf24.a \
+#				libs/libphy_driver.a \
+#				libs/libhaltime.a \
+#				libs/libhalstorage.a \
+#				libs/libnrf24l01.a \
+#				libs/libspi.a \
+#				@GLIB_LIBS@ @JSON_LIBS@
+#src_nrfd_nrfd_LDFLAGS = $(AM_LDFLAGS)
+#src_nrfd_nrfd_CFLAGS = $(AM_CFLAGS) @GLIB_CFLAGS@ \
+#				-I$(top_srcdir)/src \
+#				-I$(top_srcdir)/src/nrf24l01 \
+#				-I$(top_srcdir)/src/drivers \
+#				-I$(top_srcdir)/src/hal/comm \
+#				-I$(top_srcdir)/src/nrf24l01 @JSON_CFLAGS@
 
 src_physeriald_physeriald_SOURCES = src/physeriald/main.c \
 				src/physeriald/manager.h src/physeriald/manager.c
@@ -54,4 +57,5 @@ MAINTAINERCLEANFILES = Makefile.in \
 	ltmain.sh depcomp compile missing install-sh
 
 clean-local:
-	$(RM) -r proxy/spiproxyd src/nrfd/nrfd tools/rpiecho tools/sniffer
+	$(RM) -r proxy/spiproxyd tools/rpiecho tools/sniffer
+#	$(RM) -r proxy/spiproxyd src/nrfd/nrfd tools/rpiecho tools/sniffer
