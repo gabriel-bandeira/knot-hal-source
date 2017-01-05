@@ -15,5 +15,5 @@ all-local:
 	$(MKDIR_P) $(top_srcdir)/libs && cp $(lib_LIBRARIES) $(top_srcdir)/libs
 
 clean-local:
-	$(RM) -r libhalcommnrf24.a
+#	$(RM) -r libhalcommnrf24.a
 	$(RM) -r libhalcommserial.a
