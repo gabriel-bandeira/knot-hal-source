@@ -39,7 +39,6 @@ AC_SUBST(JSON_CFLAGS)
 AC_SUBST(JSON_LIBS)
 
 #AC_CONFIG_FILES([Makefile src/spi/Makefile src/nrf24l01/Makefile \
-AC_CONFIG_FILES([Makefile src/spi/Makefile \
-		src/hal/storage/Makefile src/hal/time/Makefile \
+AC_CONFIG_FILES([Makefile src/hal/storage/Makefile src/hal/time/Makefile \
 		src/hal/log/Makefile src/hal/comm/Makefile src/drivers/Makefile])
 AC_OUTPUT

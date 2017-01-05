@@ -1,11 +1,14 @@
 lib_LIBRARIES = libphy_driver.a
-lib_ARDUINO = phy_driver.c phy_driver_nrf24.c
+#lib_ARDUINO = phy_driver.c phy_driver_nrf24.c
+lib_ARDUINO = phy_driver.c
 
 AM_CFLAGS = $(WARNING_CFLAGS) $(BUILD_CFLAGS)
 
-libphy_driver_a_SOURCES = phy_driver.c phy_driver_nrf24.c
-libphy_driver_a_CPPFLAGS = $(AM_CFLAGS) -I$(top_srcdir)/src/hal/comm \
-								-I$(top_srcdir)/src/nrf24l01
+#libphy_driver_a_SOURCES = phy_driver.c phy_driver_nrf24.c
+libphy_driver_a_SOURCES = phy_driver.c
+libphy_driver_a_CPPFLAGS = $(AM_CFLAGS) -I$(top_srcdir)/src/hal/comm
+#libphy_driver_a_CPPFLAGS = $(AM_CFLAGS) -I$(top_srcdir)/src/hal/comm \
+#								-I$(top_srcdir)/src/nrf24l01
 
 all-local:
 	$(MKDIR_P) $(top_srcdir)/libs && cp $(lib_LIBRARIES) $(top_srcdir)/libs
