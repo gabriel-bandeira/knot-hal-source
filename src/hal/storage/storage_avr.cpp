@@ -38,7 +38,7 @@ ssize_t hal_storage_read(uint16_t addr, uint8_t *value, size_t len)
 	size_t i;
 
 	/* Safe guard to avoid reading 'protected' EEPROM area: config/uuid/token */
-        config.size = eeprom_read_word((const uint16_t*) ADDR_OFFSET_CONFIG);
+	config.size = eeprom_read_word((const uint16_t*) ADDR_OFFSET_CONFIG);
 	if (config.size > EEPROM_SIZE_FREE)
 		return 0;
 
@@ -61,7 +61,7 @@ ssize_t hal_storage_write(uint16_t addr, const uint8_t *value, size_t len)
 	size_t i;
 
 	/* Safe guard to avoid writing 'protected' EEPROM area: config/uuid/token */
-        config.size = eeprom_read_word((const uint16_t*) ADDR_OFFSET_CONFIG);
+	config.size = eeprom_read_word((const uint16_t*) ADDR_OFFSET_CONFIG);
 	if (config.size > EEPROM_SIZE_FREE)
 		return 0;
 
