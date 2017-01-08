@@ -22,8 +22,8 @@
 #include "manager.h"
 
 static GMainLoop *main_loop;
-static const char *opt_serial = NULL;
-static gboolean opt_unix = FALSE;
+static const char *opt_serial;
+static gboolean opt_unix;
 
 static void sig_term(int sig)
 {
