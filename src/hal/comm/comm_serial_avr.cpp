@@ -33,7 +33,7 @@ int hal_comm_deinit(void)
 
 int hal_comm_socket(int domain, int protocol)
 {
-	return -ENOSYS;
+	return 0;
 }
 
 int hal_comm_close(int sockfd)
