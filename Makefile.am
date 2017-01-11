@@ -10,7 +10,8 @@ SUBDIRS = src/spi src/nrf24l01 src/hal/storage src/hal/time src/hal/log \
 AM_CFLAGS = $(WARNING_CFLAGS) $(BUILD_CFLAGS)
 AM_LDFLAGS = $(BUILD_LDFLAGS)
 
-bin_PROGRAMS = proxy/spiproxyd src/nrfd/nrfd tools/sniffer tools/rpiecho
+bin_PROGRAMS = proxy/spiproxyd src/nrfd/nrfd tools/sniffer tools/rpiecho \
+					     src/phyemud/phyemud
 
 proxy_spiproxyd_SOURCES = proxy/main.c
 proxy_spiproxyd_LDADD = libs/libspi.a libs/libnrf24l01.a @GLIB_LIBS@
@@ -55,6 +56,18 @@ tools_rpiecho_CFLAGS = $(AM_CFLAGS) @GLIB_CFLAGS@ \
 				-I$(top_srcdir)/src/spi \
 				-I$(top_srcdir)/src/nrf24l01 \
 				-I$(top_srcdir)/nrf
+
+src_phyemud_phyemud_SOURCES = src/phyemud/main.c \
+				src/phyemud/manager.h src/phyemud/manager.c
+src_phyemud_phyemud_LDADD = libs/libhallog.a \
+				libs/libhalcommserial.a \
+				libs/libhaltime.a \
+				libs/libhalstorage.a \
+				@GLIB_LIBS@
+src_phyemud_phyemud_LDFLAGS = $(AM_LDFLAGS)
+src_phyemud_phyemud_CFLAGS = $(AM_CFLAGS) @GLIB_CFLAGS@ \
+				-I$(top_srcdir)/src \
+				-I$(top_srcdir)/src/hal/comm
 
 DISTCLEANFILES =
 
