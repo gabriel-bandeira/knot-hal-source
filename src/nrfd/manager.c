@@ -815,18 +815,18 @@ static int radio_init(const char *spi, uint8_t channel, uint8_t rfpwr,
 
 	err = hal_comm_init("NRF0", mac);
 	if (err < 0) {
-		hal_log_error("Cannot init NRF0 radio. (%d)", err);
+		log_error("Cannot init NRF0 radio. (%d)", err);
 		return err;
 	}
 
 	mgmtfd = hal_comm_socket(HAL_COMM_PF_NRF24, HAL_COMM_PROTO_MGMT);
 	if (mgmtfd < 0) {
-		hal_log_error("Cannot create socket for radio (%d)", mgmtfd);
+		log_error("Cannot create socket for radio (%d)", mgmtfd);
 		goto done;
 	}
 
 	mgmtwatch = g_idle_add(read_idle, NULL);
-	hal_log_info("Radio initialized (%d)", mgmtwatch);
+	log_info("Radio initialized (%d)", mgmtwatch);
 
 	return 0;
 done:
@@ -1141,12 +1141,12 @@ int manager_start(const char *file, const char *host, int port,
 	/* Command line arguments have higher priority */
 	json_str = load_config(file);
 	if (json_str == NULL) {
-		hal_log_error("load_config()");
+		log_error("load_config()");
 		return err;
 	}
 	err = parse_config(json_str, &cfg_channel, &cfg_dbm, &mac);
 	if (err < 0) {
-		hal_log_error("parse_config(): %d", err);
+		log_error("parse_config(): %d", err);
 		return err;
 	}
 
@@ -1154,7 +1154,7 @@ int manager_start(const char *file, const char *host, int port,
 	/* Parse nodes info from nodes_file and writes it to known_peers */
 	err = parse_nodes(nodes_file);
 	if (err < 0) {
-		hal_log_error("parse_nodes(): %d", err);
+		log_error("parse_nodes(): %d", err);
 		return err;
 	}
 
@@ -1185,7 +1185,7 @@ int manager_start(const char *file, const char *host, int port,
 		dbm = cfg_dbm;
 
 	if (host == NULL) {
-		hal_log_info("host is NULL");
+		log_info("host is NULL");
 		return radio_init(spi, channel, dbm_int2rfpwr(dbm),
 						(const struct nrf24_mac*) &mac);
 	}

@@ -138,13 +138,13 @@ int main(int argc, char *argv[])
 	else
 		log_error("Native SPI mode");
 
-	hal_log_info("opt_cfg: %s", opt_cfg);
-	hal_log_info("opt_host: %s", opt_host);
-	hal_log_info("opt_port: %d", opt_port);
-	hal_log_info("opt_spi: %s", opt_spi);
-	hal_log_info("opt_channel: %d", opt_channel);
-	hal_log_info("opt_dbm: %d", opt_dbm);
-	hal_log_info("opt_nodes: %s", opt_nodes);
+	log_info("opt_cfg: %s", opt_cfg);
+	log_info("opt_host: %s", opt_host);
+	log_info("opt_port: %d", opt_port);
+	log_info("opt_spi: %s", opt_spi);
+	log_info("opt_channel: %d", opt_channel);
+	log_info("opt_dbm: %d", opt_dbm);
+	log_info("opt_nodes: %s", opt_nodes);
 	err = manager_start(opt_cfg, opt_host, opt_port, opt_spi, opt_channel,
 							opt_dbm, opt_nodes);
 	if (err < 0) {
